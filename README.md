@@ -7,7 +7,7 @@
 - **LinkedIn:** [Juan Pablo Bernal Lafarga](www.linkedin.com/in/juan-pablo-bernal-lafarga-7b9942232)
 
 ## Perfil profesional
-Estudiante de la carrera de Ciencia de Datos y Matemáticas, apasionado de la matemaática aplicada a la resolución de problemas de optimización computacional. Trabajo con Python y R.
+Estudiante de la carrera de Ciencia de Datos y Matemáticas, apasionado de la matemática aplicada a la resolución de problemas de optimización con técnicas como algoritmos bioinspirados, redes bayesianas continuas y discretas, y optimización lineal y estocástica. Trabajo con Python y R.
 Mi razonamiento matemático y  fácil disposición al trabajo en equipo son mis fortalezas.
 
 ## Educación
