@@ -1,0 +1,1348 @@
+---
+title: "Reto - Fase 1: Sistema dinámico SIR"
+author: "A. Murillo, F. Rodríguez, J. Bernal, J. Valenzuela"
+date: "Noviembre de 2022"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## El modelo SIR
+
+Consideremos un modelo para describir la dinámica de un grupo de individuos de una población con exposición a una enfermedad que puede contagiarse entre los miembros de la población.
+Esto puede modelarse como un sistema dinámico denominado $SIR$ para una población de $N$ individuos en la que se considera la interacción entre un conjunto de $S$ individuos *suceptibles* de contraer la enfermedad, un conjunto $I$ de individuos *infectados* y uno conjunto $R$ de individuos *recuperados* de la enfermedad.
+
+Este modelo tiene los siguientes supuestos:
+
+-   la probabilidades de infectarse son iguales para todos los individuos de la población;
+
+-   la población es homogénea, es decir que los riesgos de infectarse son iguales para toos los suceptibles y que los tiempos para recuperarse son iguales para todos los infectados; y
+
+-   el tamaño $N$ de la población es constante.
+
+El modelo maneja los diferentes conjuntos $S$, $I$ y $R$ como si fueran compartimentos bien separados y considera que los individuos pueden pasr de uno a otro en el caso de que se enfermen (cambio $S\rightarrow I$) o que una vez enfermos se recuperen (cambio $I\rightarrow R$).
+Ademas, se asume que un individuo no puede pasar del conjunto de suceptibles directamente al conjunto de recuperados.
+
+Con estos supuestos y consideraciones, las ecuaciones diferenciales del modelo SIR son: $$
+\begin{aligned}
+\frac{dS}{dt}&= -\beta \frac{I}{N} S\\
+\frac{dI}{dt}&= \beta\frac{I}{N}S-\gamma I\\\
+\frac{dR}{dt}&= \gamma I
+\end{aligned}
+$$ donde:
+
+-   N=S+R+I
+
+-   la cantidad $\beta\frac{I}{N}$ representa la razón con que las personas salen del compartimento S (se infectan);
+
+-   en la primera ecuación $dS$ representa el cambio debido a las personas que salen del compartimento $S$ (el signo negativo se debe a que las personas salen)
+
+-   en la segunda ecuación $dI$ representa el cambio debido a las personas que salen del compartimento $I$ (una parte se debe a las personas que del compartimento $S$ pasan al compartimento $I$, y otra parte se debe a las personas que salen del compartimento $I$ porque se recuperan);
+
+-   la cantidad $\gamma$ representa la razón con que las personas se recuperan.
+
+```{r}
+# PACKAGES:
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+#Beta=razon de infección
+#gamma=proporción de recuperación 
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+```
+
+## Gráficos de la evolución del sistema
+
+```{r }
+
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+ggplot(data = output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+
+```
+
+## Pregunta 1 (Francelio Uriel Rodriguez Garcia - A01352663)
+
+Analizando el dataframe "output" encuentre el día en que el número de contagios es máximo (el pico de la curva verde).
+¿Después de cuántos días del inicio ocurre el máximo?
+
+```{r}
+
+library(dplyr)
+max_numcont=max(output$I) #Buscamos el valor maximo de la columna I, que es el numero maximo de contagios
+output[which.max(output$I),] #Imprimimos la fila donde se ubica el valor maximo de la columna I y determinanmos cual fue el dia en que hubo más contagios
+
+#Atraves de las funciones utilizadas en el script podemos decir que después de 18 dias desde el inicio de los contagios se presento el maximo de contagiados.
+```
+
+Usando las ecuaciones diferenciales del modelo, encuentre una relación entre los parámetros del modelo válida para el valor de $t$ correspondiente al máximo de la curva de infección.
+
+$\frac{d I}{d S}=\frac{d I}{d t} \frac{d t}{d S}=\frac{d I}{d t}\left(\frac{1}{-\frac{\beta I}{N} S}\right) \quad$\
+
+$\frac{d I}{d S}=(\beta \frac{I}{N} S - \gamma I)(-\frac{1}{\frac{\beta I}{N} S })$\
+
+$\frac{d I}{d S}=(\frac{\frac{\beta I S}{N}}{-\frac{\beta I S}{N}} - \frac{\frac{\gamma I}{1}}{-\frac{\beta I S}{N}})$\
+
+$\frac{d I}{d S}=(-1 + \frac{\gamma I N}{\beta I S})$\
+
+$\frac{d I}{d S}= -1 + \frac{\gamma N}{\beta S}$\
+
+$d I= (-1+\frac{\gamma N}{\beta S}) d S$\
+
+$\int d I = \int (-1+\frac{\gamma N}{\beta S}) d S$\
+
+$I = -S + \frac{\gamma}{\beta} N \ln(S) + C$ (1)\
+
+Para poder obtener la valor de la constante tenemos que colocar los subíndices 0 en cada uno de los parámetros y despejar C, quedando de la siguiente manera:\
+
+$I_{0} = -S_{0} + \frac{\gamma}{\beta} N \ln(S_{0}) + C$\
+
+Despejamos C:\
+
+$C=I_{0}+S_{0}-\frac{\gamma}{\beta}N \ln(S_{0})$\
+
+Ahora sustituimos los valores iniciales en cada uno de los parámetros:\
+
+$C=1+999,999-\frac{0.1}{1} (1,000,000) \ln(999,999)$\
+
+$C=-381550.6558$\
+
+Ahora teniendo el valor de C, sustituimos su valor en la ecuación general (1) :\
+
+$I = -S + \frac{\gamma}{\beta} N \ln(S) -381550.6558$\
+
+Para comprobar que nuestra ecuación es correcta, sustituimos los valores iniciales de cada parámetro:\
+
+$I= -S + \frac{0.1}{1}(1,000,000) \ln(S) -381550.6558$\
+
+El valor de S se obtiene mediante la segunda ecuación diferencial de nuestro modelo SIR, para ello tenemos que igualarlo a 0:\
+
+$\frac{dI}{dt}= \beta\frac{I}{N}S-\gamma I$\
+
+$0=\beta\frac{I}{N}S-\gamma I$\
+
+Hacemos el despeje para obtener S:\
+
+$S=\frac{\gamma}{\beta} N$\
+
+Sustituyendo los valores de los parámetros que ya conocemos,obtenemos que S vale:\
+
+$S=\frac{0.1(1,000,000)}{1} = 100,000$\
+
+Conociendo el valor de S,lo sustituimos en la ecuación:\
+
+$I= -S + \frac{0.1}{1}(1,000,000) \ln(S) -381550.6558$\
+
+$I= -100,000 + \frac{0.1}{1}(1,000,000) \ln(100,000) -381550.6558$\
+
+$I=669741.4$
+
+Como podemos observar nuestra ecuación es correcta, debido a que el resultado es igual al valor correspondiente en el dataframa "output" con respecto al numero maximo de infectados.
+
+## Pregunta 2 (Juan Pablo Bernal Lafarga - A01742342)
+
+Analizando el dataframe "output" encuentre después de cuántos días el número de "susceptibles" se reduce a la mitad.
+
+```{r}
+
+S=999999 #Número de susceptibles
+MitadS=S/2
+
+```
+
+Usando la ecuación diferencial que expresa la variación del número de susceptibles, encuentre de manera analítica una fórmula que exprese el tiempo $t$ necesario para que el número de susceptibles sea la mitad del valor incial en función de $\beta$.
+
+Haciendo un análisis meramente visual del dataframe output, observamos que el número de susceptibles llega a la mitad entre t=15 y t=16, pues en esos días el número de susceptibles se encuentra entre 562082 y 353135 personas.
+Por lo que el valor que buscamos se encuentra entre los valores de t anteriormente mencionados.
+
+Teniendo las respectivas derivadas de las 3 funciones del modelo SIR, aplicamos la regla de la cadena a la función de susceptibles con respecto al tiempo y la derivada de la función de recuperados con respecto al tiempo, de tal forma que
+
+$$
+\frac{\frac{d S}{d t}}{\frac{d R}{d t}}=\frac{d S}{d t} \cdot \frac{d t}{d R}
+$$
+
+Donde:
+
+$$
+\begin{aligned}
+&\frac{d S}{d t}=-\beta \frac{I}{N} s \\
+&\frac{d R}{d t}=\gamma I \longrightarrow \frac{d t}{d R}=\frac{1}{\gamma I}
+\end{aligned}
+$$
+
+Tal que:
+
+$$
+\frac{d S}{d R}=\left(-\beta \frac{I}{N} S\right)\left(\frac{1}{\gamma I}\right)=-\frac{\beta s}{N \gamma}
+$$
+
+Despejamos S, tal que:
+
+$$
+\frac{d S}{S}=-\frac{\beta}{N \gamma} d R
+$$
+
+Y al integrar la expresión anterior, obtenemos que:
+
+$$
+\ln |S|=-\frac{\beta}{N r} R+c
+$$
+
+Después, despejamos $S$ nuevamantes :
+
+$$
+\begin{aligned}
+e^{\ln S} &=e^{-\frac{\beta}{N \gamma} R+c} \\
+S &=e^c e^{-\frac{\beta}{N \gamma} R} \\
+\tilde{c} &=e^c \\
+S(t) &=\tilde{c} e^{-\frac{\beta}{N T} R(t)}
+\end{aligned}
+$$
+
+Cuando $t=0$, entonces
+
+$$
+S_0=\tilde{c} e^0=\tilde{c}
+$$
+
+De esta forma, obtenemos
+
+$$
+S(t)=S_0 e^{-\frac{\beta}{N \gamma} R(t)} 
+$$
+
+Y si queremos obtener el tiempo que tarda S en reducirse a la mitad con respecto a su valor inicial, entonces
+
+$$
+\begin{aligned}
+&\frac{S_0}{2}=S_0 e^{-\frac{\beta}{N \gamma}R(t)} \\
+&\frac{1}{2}=e^{-\frac{\beta}{N \gamma}R(t)}
+\end{aligned}
+$$
+
+Despejamos la función $R(t)$ y obtenemos
+
+$$
+\begin{aligned}
+&\ln \left(\frac{1}{2}\right)=\ln (e^{-\frac{\beta}{N \gamma} R(t)} )\\
+&\ln \left(\frac{1}{2}\right)=-\frac{\beta}{N \gamma} R(t) \\
+&-\frac{\ln \left(\frac{1}{2}\right) N \gamma}{\beta}=R(t)
+\end{aligned}
+$$
+
+Sustituimos $N, \gamma$ y $\beta$ por sus respectivos valores, ya que son constantes
+
+$$
+\begin{gathered}
+R(t) \text { cuando } S(t)=\frac{S_0}{2} \text {, es } \\
+R(t)=-\frac{\ln \left(\frac{1}{2}\right)(1000000)(0.1)}{1}=69,314.718
+\end{gathered}
+$$
+
+Finalmente, podemos concluir que el tiempo estimado para que el número de susceptibles se reduzca a la mitad con respecto de su valor inicial, es cuando aproximadamente 69,315 personas se hayan recuperado.
+
+## Pregunta 3 (Alfredo Murillo Madrigal - A01641791)
+Estudie la dinámica del contagio variando los parámetros $\beta$ y $gamma$. Empiece con $gamma=0.1$ constante cambiando $\beta$ (que representa la 'fuerza' de la infeccion):
+
+-   $\beta=0.1$ 365 días
+
+-   $\beta=0.3$ 365 días
+
+-   $\beta=0.7$ 60 días
+
+-   $\beta=0.9$ 60 días
+
+-   $\beta=1.2$ 60 días
+
+```{r}
+#Beta=0.1
+#t=365 dias
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 0.1,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 365 días
+times1 <- seq(from = 0, to = 365, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+B1output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times1, 
+                            func = sir_model,
+                            parms = parameters))
+
+B1output_long <- melt(as.data.frame(B1output), id = "time")                  
+
+ggplot(data = B1output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+Podemos observar que mientras beta (la fuerza de la enfermedad) sea menor o igual a gamma (la razón de recuperación) no aumentaran los infectados y los que se infecten se recuperaran al ritmo de la enfermedad, por lo que para un solo infectado la enfermedad no avanza y términa apenas comienza.
+
+```{r}
+#Beta=0.3
+#t=365
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 0.3,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 365 días
+times2 <- seq(from = 0, to = 365, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G2output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+
+G2output_long <- melt(as.data.frame(G2output), id = "time")                  
+
+ggplot(data = G2output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+En esta gráfica podemos ver que con un factor de infección 3 veces mayor al de recuperación y un número de infectados pequeño la enfermedad puede progresar pero le cuesta tiempo infectar y recuperarse al ser valores pequeños de beta y gamma.
+
+```{r}
+#Beta=0.9
+#t=60
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 0.9,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times3 <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G3output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times3, 
+                            func = sir_model,
+                            parms = parameters))
+
+G3output_long <- melt(as.data.frame(G3output), id = "time")                  
+
+ggplot(data = G3output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+Al ser la fuerza de la enfermedad 9 veces mayor a la enfermedad puede crecer lo suficientemente rápido como para que todos se infecten, aunque no al mismo tiempo y, pese a tener un factor de recuperación pequeño en comparación, al haber tantos infectados, la cantidad de personas recuperadas aumenta rápidamente también cuando más infectados hay ya que la cantidad de recuperados depende en parte de la cantidad de enfermos que haya.
+
+```{r}
+#Beta=1.2
+#t=60
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1.2,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times4 <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G4output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times4, 
+                            func = sir_model,
+                            parms = parameters))
+
+G4output_long <- melt(as.data.frame(G4output), id = "time")                  
+
+ggplot(data = G4output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+Comente acerca de los cambios que se observan en las curvas.
+Encuentre una relación entre $\beta$ y $\gamma$ necesaria para que ocurra la epidemia.
+Para que haya una epidemia la fuerza de infección ($\beta$) debe ser suficientemente alta por un tiempo suficientemente largo ($\gamma$ suficientemente bajo) de manera que se pueda transmitir el agente patógeno.
+A partir de este estudio se puede definir el coeficiente $R_0$ de la infección.\
+
+Basado en lo observado, si tuvieramos un tiempo lo suficientemente grande la única condición sería que $\beta>\gamma$, conforme se reduce el tiempo mayor tiene que ser la diferencia entre $\beta$ y $\gamma$ para que ocurra una epidemia, conforme límitamos el tiempo tenemos que aumentar la diferencia entre $\beta$ y $\gamma$ para que la enfermedad avance lo suficientemente rápido.
+
+## Pregunta 4 (Juan Pablo Valenzuela Dorado - A00227321)
+
+Después, con $\beta=1$ varíe el valor de $\gamma$:
+
+-   $\gamma=0.025$ 60 días
+
+-   $\gamma=0.2$ 60 días
+
+-   $\gamma=0.5$ 60 días
+
+-   $\gamma=1$ 365 días
+
+```{r}
+#Gamma=0.025
+#t=60 dias
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.025)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G1output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+
+G1output_long <- melt(as.data.frame(G1output), id = "time")                  
+
+ggplot(data = G1output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#Gamma=0.2
+#t=60 dias
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.2)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G2output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+
+G2output_long <- melt(as.data.frame(G2output), id = "time")                  
+
+ggplot(data = G2output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#Gamma=0.5
+#t=60 dias
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.5)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G3output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+
+G3output_long <- melt(as.data.frame(G3output), id = "time")                  
+
+ggplot(data = G3output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#Gamma=1
+#t=365 dias
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 365 días
+times1 <- seq(from = 0, to = 365, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+G4output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times1, 
+                            func = sir_model,
+                            parms = parameters))
+
+G4output_long <- melt(as.data.frame(G4output), id = "time")                  
+
+ggplot(data = G4output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+Comente acerca de los cambios que se observan en las curvas.
+Encuentre una relación entre $\beta$ y $\gamma$ necesaria para que ocurra la epidemia.
+Para que haya una epidemia la fuerza de infección ($\beta$) debe ser suficientemente alta por un tiempo suficientemente largo ($\gamma$ suficientemente bajo) de manera que se pueda transmitir el agente patógeno.
+A partir de este estudio se puede definir el coeficiente $R_0$ de la infección.
+
+-   A medida que el valor de gamma se acerca más a 0, los suceptibles son más propensos a infectarse antes, el número de infectados alcanza un pico en cierto punto cuando los suceptibles dejan de ser numerosos, por lo que se empiezan a infectar menos, que baja lentamente, al mismo tiempo que se recuperan lentamente.
+
+-   Mientras gamma se acerca más a 1, los suceptibles tardan más en infectarse, existe un pico muy pequeño en el que se infectan la mayoría, pero casi instantaneamente se empiezan a recuperar, por lo que el pico rápidamente vuelve a bajar.
+
+-   En el caso de 1, directamente no existen infectados, la población se mantiene suceptible, y al no haber infectados, no hay recuperados.
+
+
+## El modelo SIR
+
+Consideremos un modelo para describir la dinámica de un grupo de individuos de una población con exposición a una enfermedad que puede contagiarse entre los miembros de la población. Esto puede modelarse como un sistema dinámico denominado $SIR$ para una población de $N$ individuos en la que se considera la interacción entre un conjunto de $S$ individuos *suceptibles* de contraer la enfermedad, un conjunto $I$ de individuos *infectados* y uno conjunto $R$ de individuos *recuperados* de la enfermedad.
+
+Este modelo tiene los siguientes supuestos:
+
+* la probabilidades de infectarse son iguales para todos los individuos de la población;
+
+* la población es homogénea, es decir que los riesgos de infectarse son iguales para toos los suceptibles y que los tiempos para recuperarse son iguales para todos los infectados; y
+
+* el tamaño $N$ de la población es constante.
+
+El modelo maneja los diferentes conjuntos $S$, $I$ y $R$ como si fueran compartimentos bien separados y considera que los individuos pueden pasr de uno a otro en el caso de que se enfermen (cambio $S\rightarrow I$) o que una vez enfermos se recuperen (cambio $I\rightarrow$). Ademas, se asume que un individuo no puede pasar del conjunto de suceptibles directamente al conjunto de recuperados.
+
+Con estos supuestos y consideraciones, las ecuaciones diferenciales del modelo SIR son:
+\[
+\begin{aligned}
+\frac{dS}{dt}&= -\beta \frac{I}{N} S\\
+\frac{dI}{dt}&= \beta\frac{I}{N}S-\gamma I\\\
+\frac{dR}{dt}&= \gamma I
+\end{aligned}
+\]
+donde:
+
+* N=S+R+I
+
+* la cantidad $\beta\frac{I}{N}$ representa la razón con que las personas salen del compartimento S (se infectan);
+
+* en la primera ecuación $dS$ representa el cambio debido a las personas que salen del compartimento $S$ (el signo negativo se debe a que las personas salen)
+
+* en la segunda ecuación $dI$ representa el cambio debido a las personas que salen del compartimento $I$ (una parte se debe a las personas que del compartimento $S$ pasan al compartimento $I$, y otra parte se debe a las personas que salen del compartimento $I$ porque se recuperan);
+
+* la cantidad $\gamma$ representa la razón con que las personas se recuperan.
+
+```{r}
+# PACKAGES:
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.1)   # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 60, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S               
+        dI <- lambda * S - gamma * I   
+        dR <- gamma * I                 
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+```
+
+
+##  Gráficos de la evolución del sistema
+
+```{r }
+
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+ggplot(data = output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+
+```
+
+
+Con el modelo SIR se define la constante 
+\[R_0=\frac{\beta}{\gamma}\]
+que representa el número de personas que cada contagiado infecta. Para que la enfermedad analizada logre dispararse en forma de una epidemia debe cumplirse que $R_0 > 1$. 
+
+También se define 
+\[R_{eff}=R_0\frac{S}{N}\]
+que corresponde al número promedio de personas que cada contagiado infecta. Este segundo valor $R_{eff}$ toma en cuenta de que durante la evolución de la pandemia, al aumentar del número de personas inmunes en la población cada persona contagiada infectará a un número de personas cada vez menor.
+
+
+
+## Pregunta 1 (Francelio Uriel Rodriguez Garcia - A01352663)
+
+Haga cambios en el modelo para tomar en cuenta el hecho de que la
+población no es constante:
+
+-   agregar un término de incremento en $dS$ para tomar en cuenta los
+    individuos nacidos $+bN$
+
+-   agregar un término de decremento en $dS$ para tomar en cuenta las
+    personas susceptibles que mueren -$\mu S$
+
+-   agregar un término de decremento en $dI$ para tomar en cuenta las
+    personas infectadas que mueren -$\mu I$
+
+-   agregar un término de decremento en $dR$ para tomar en cuenta las
+    personas recuperadas que fallecen $-\mu R$
+
+Usar ahora los parámetros
+
+$$
+\begin{aligned}
+\beta  &=  0.4 days^{-1} &= (0.4 \times 365) years^{-1}\\
+\gamma &=  0.2 days^{-1} &= (0.2 \times 365) years^{-1}\\
+\mu    &=  \frac{1}{70}years^{-1}\\
+b     &=  \frac{1}{70}years^{-1}\\ 
+\end{aligned}
+$$ 
+y considerar una duración de 1 año.
+
+```{r}
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+
+#razones en unidades de días^-1
+parameters <- c(beta = 0.4,gamma = 0.2,b=0.00003914, mu=0.00003914)     # razón de infección     # razón de recuperación
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 365, by = 1)   
+
+sir_model <- function(time, state, parameters) {with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S  + (b*N) - (mu*S)          
+        dI <- lambda * S - gamma * I - (mu * I) 
+        dR <- gamma * I - (mu*R)              
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+```
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+ggplot(data = output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+```
+
+$$
+\begin{aligned}
+\frac{dS}{dt}&= -\beta \frac{I}{N} S + (b*N) - (\mu *S)\\
+\frac{dI}{dt}&= \beta\frac{I}{N}S-\gamma I - (\mu*I)\\
+\frac{dR}{dt}&= \gamma I - (\mu*R)
+\end{aligned}
+$$
+
+Explicación de la gráfica: Como podemos observar en la gráfica de
+arriba, se logra apreciar que la gráfica no se nota un gran cambio
+visualmente debido a los parametros de $\mu$ y de $b$ son valores muy
+pequeños y son similares es por ello que en la grafica se pude observar
+de esta manera, sin embargo si jugamos un poco con los valores de los
+parametros de $\mu$ y $b$ se logra apreciar el cambio en la grafica, con
+esto podemos concluir que nuestro modelo tomando en cuenta los factores
+de incremento y de decremento, es correcta.
+
+## Pregunta 2 (Juan Pablo Bernal Lafarga - A01742342)
+
+Considerando el modelo SIR básico, haga cambios para tomar en cuenta un programa de vacunación. Suponga que una fracción $v$ de susceptibles se vacuna de manera que queda inmune (y entra ahora directamente en el conjunto de los recuperados). Calcule la dinámica de la epidemia en este caso usando los parámetros $\beta=0.4$, $\gamma=0.1$ y considere un periodo de 2 años.
+
+Su modelo debe ser capaz de mostrar que si la fracción $v$ es suficiente, no es necesario vacunar a todos los suceptibles para evitar la epidemia. A este efecto se le conoce como *inmunidad de rebaño* y se refiere a que si un sector grande de la población es inmune, entonces los contagios se mantienen a un nivel en el que la enfermedad es eliminada.
+
+¿Cómo se puede calcular la fracción mínima $v$ de personas que se deben vacunar para poder evitar una epidemia? La inmunidad de rebaño ocurre cuando $R_{eff}< 1$. 
+
+Si la inmunidad de rebaño ocurre cuando  $R_{eff}<1$, entonces reemplazamos:
+$$
+\begin{aligned}
+&R_{\text {eff }}=R_0 \frac{S}{N} \\
+&R_0 \cdot \frac{S}{N}<1
+\end{aligned}
+$$
+Multiplicamos $N$ por ambos lados de la desigualdad.
+$$
+R_0S<N
+$$
+De estas 3 "variables", 2 de ellas son constantes: N y $R_0$. Donde:
+$$
+\begin{aligned}
+&N=1000000 \\
+&R_0=\frac{\beta}{r}=\frac{0.4}{0.1}=4
+\end{aligned}
+$$
+Entonces, dividimos ambos lados de la desigualdad entre $R_0$
+$$
+\begin{aligned}
+&\text { (4) } \frac{5}{4}<N / 4 \\
+&S<1000000 / 4 \\
+&S<250000
+\end{aligned}
+$$
+Por lo tanto, la fracción mínima de personas susceptibles que necesitan vacunarse para el efecto de inmunidad de rebaño es de menos de una cuarta parte de la población. Por ejemplo; si tomamos el valor máximo que es de 249,999 susceptibles:
+$$
+\text { (4) } \frac{249,999}{1,000,000}=0.999<1
+$$
+
+De esta manera comprobamos que para que $R_{eff}$  sea menor a 1, los susceptibles vacunados deben de ser menores a la cuarta parte de la población total.
+
+## Pregunta 3 (Alfredo Murillo Madrigal - A01641791)
+
+Haga cambios en el modelo para tomar en cuenta de que la población no es constante:
+
+* agregar un término de incremento en $dS$ para tomar en cuenta los nacidos $+bN$
+
+* agregar un término de decremento en $dS$ para tomar en cuenta las personas susceptibles que mueren -$\mu S$
+
+* agregar un término de decremento en $dI$ para tomar en cuenta las personas infectadas que mueren -$\mu I$
+
+* agregar un término de decremento en $dR$ para tomar en cuenta las personas recuperadas que fallecen $-\mu R$
+
+Use los parámetros
+\[
+\begin{aligned}
+\beta  &=  0.4 days^{-1} &= (0.4 \times 365) years^{-1}\\
+\gamma &=  0.2 days^{-1} &= (0.2 \times 365) years^{-1}\\
+\mu    &=  \frac{1}{70}years^{-1}\\
+b     &=  \frac{1}{70}years^{-1}\\
+\end{aligned}
+\]
+y considere una duración de 400 años en sus cálculos.
+
+```{r}
+# PACKAGES:
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+
+
+initial_state_values <- c(S = 999999,  # Número de susceptibles inicial
+                                       # 
+                          I = 1,       # Se inicia con una persona infectada
+                          R = 0)       # 
+
+
+#razones en unidades de días^-1
+parameters <- c(beta = 1,      # razón de infección
+                gamma = 0.1,   # razón de recuperación
+                b = (1/70)/365,
+                mu = (1/70)/365)
+
+#valores de tiempo para resolver la ecuación, de 0 a 60 días
+times <- seq(from = 0, to = 400*365, by = 1)   
+
+sir_model <- function(time, state, parameters) {  
+    with(as.list(c(state, parameters)), {# R obtendrá los nombres de variables a
+                                         # partir de inputs de estados y parametros
+        N <- S+I+R 
+        lambda <- beta * I/N
+        dS <- -lambda * S + b*N -mu*S               
+        dI <- lambda * S - gamma * I - mu*I   
+        dR <- gamma * I - mu*R                
+        return(list(c(dS, dI, dR))) 
+    })
+}
+
+# poner la solución del sistema de ecuaciones en forma de un dataframe
+output <- as.data.frame(ode(y = initial_state_values, 
+                            times = times, 
+                            func = sir_model,
+                            parms = parameters))
+```
+
+```{r}
+output_long <- melt(as.data.frame(output), id = "time")                  
+
+ggplot(data = output_long,                                              
+       aes(x = time, y = value, colour = variable, group = variable)) +  
+  geom_line() +                                                          
+  xlab("Tiempo (días)")+                                                   
+  ylab("Número de individuos") +                                             
+  labs(colour = "Subconjunto") +
+  theme(legend.position = "bottom")
+
+```
+Analísis de la gráfica: Podemos observar que al gráficar tanto tiempo (400 años) la línea de recuperados pareciera ir en línea recta hacía arriba pero si gráficaramos un tiempo menor podríamos ver que se mantiene una línea aparentemente igual a la que ya hemos observado, sin embargo podemos notar un patrón donde prácticamente al mismo tiempo que los infectados aumentan de manera considerable, los suceptibles caen abruptamente de manera proporcional a la que aumenta el número de recuperados, este ciclo se repite hasta apróximadamente el día 30,000 apartir de este día aparentemente se mantienen estables los suceptibles, recuperados e infectados. Por lo que podemos concluir que con este modelo la enfermedad no desaparece, pero si se mantiene controlada o estable luego de unos años.
+
+## Pregunta 4 (Juan Pablo Valenzuela Dorado - A00227321)
+
+Considerando el modelo SIR básico, haga cambios para tomar en cuenta un
+programa de vacunación. Suponga que una fracción $v$ de susceptibles se
+vacuna de manera que queda inmune (y entra ahora directamente en el
+conjunto de los recuperados), mientras que la fracción $(1-v)$ sigue
+siendo susceptible.
+
+Calcule la dinámica de la epidemia en este caso, estudiando cómo cambia
+la dinámica variando la fracción $v$. Utilice $\beta=0.6$, $\gamma=0.1$
+y considere un periodo de 2 años.
+
+Su modelo debe ser capaz de mostrar que si la fracción $v$ es
+suficiente, no es necesario vacunar a todos los suceptibles para evitar
+la epidemia. A este efecto se le conoce como *inmunidad de rebaño* y se
+refiere a que si un sector grande de la población es inmune, entonces
+los contagios se mantienen a un nivel en el que la enfermedad es
+eliminada.
+
+¿Cómo se puede calcular la fracción mínima $v$ de personas que se deben
+vacunar para poder evitar una epidemia? La inmunidad de rebaño ocurre
+cuando $R_{eff}< 1$.
+
+Cuando el producto entre los suceptibles son la mitad de la población
+total y Beta entre Gamma es menor a uno, las personas se empiezan a
+recuperar más rápido, y el núemro de infectados baja rápidamente, así
+que si se conoce el tamaño de la muestra y las personas suceptibles,
+depeniendo de la razón con la que las personas se recuperan, se puede
+predecir el número mínimo de personas que se necesitan vacunar para
+evitar una epidemia igualando la ecuación a 1, es decir:
+$N = I + R + S + V \\  R_0 = \frac{\beta}{\gamma}\\  R_{eff} = R_0 \frac{S}{N} < 1 \\  V_{min} = \frac{BS}{Y} - I - R - S$
+
+
+Conclusión: El incluir más variables como natalidad, mortalidad y vacunas genera cambios en el modelo sobre todo a plazos largos como decenas e incluso cientos de años, pero aún con esto se llegan a estabilizar los sistemas luego de estos periodos.
+
+
+En esta fase del reto, iniciarás un esquema en el que los individuos considerados son personas que se encuentran localizados en un espacio geográfico delimitado en una geometría conocida. Para este fin, cada miembro del equipo deberá elegir una de las siguientes configuraciones de su problema:
+
+
+## Problema 1 (Francelio Uriel Rodriguez Garcia - A01352663)
+
+-   Crear una ciudad cuadrada donde cada lado tiene tamaño D con distribución uniforme de personas.
+
+
+-   Crear un arreglo de posiciones x, y de posiciones y considerando N personas. Asignar una posición inicial para cada una de las personas de la población por medio de un número aleatorio uniforme. En R puede realizarse como: runif(N,min=0,max=1). Note que debe elegir valores apropiados para el mínimo y el máximo para asegurar que todas las personas estén dentro de los límites de la ciudad.
+
+```{r}
+library(stringi)
+
+#Consideramos un número N quienes seran el total de nuestra población
+N = 500
+x <- c(runif(N,min=0,max=10))
+y <- c(runif(N,min=0,max=10))
+coord <- data.frame(x,y)
+
+f <- stri_rand_strings(N,5)
+
+#Graficamos la distribución de nuestra población en nuestra ciudad cuadrada
+plot(coord,main="Distribución de la población en la ciudad",xlab="D",ylab="D")
+```
+
+```{r}
+#Agregamos un ID unico a cada persona de nuestra población 
+
+coord <- tibble::rowid_to_column(coord,"ID")
+```
+
+Dado un valor inicial de N, crear 3 variables para contar el número inicial de infectados, de susceptibles y de recuperados. Las variables deben ser tales que N=I+S+R y que haya por lo menos una persona infectada. Inicialmente no hay recuperados (R=0).
+
+```{r}
+S <- 499
+I <- 1
+R <- 0
+N <- S + R + I
+```
+Crear 2 variables para definir el “radio” de infección r, que representará la distancia para poderse infectar, r=0.6), y para la razón de recuperación.
+
+```{r}
+#Distacnia de contagio
+r <- 0.6
+
+#Razón de contagio
+gamma <- 0.3
+```
+
+Crear una variable categórica (factor variable) que represente el estado de la persona (suceptible, infectada o recuperada).
+
+```{r}
+
+#Creamos una variable categorica de la salud de la persona,por lo que asignamos la infeccion de manera aleatoria 
+
+saludpersona <- ifelse(coord$ID == sample(1:N,I),"infecctado",'susceptible')
+
+coord$Estado <- saludpersona
+
+coord[sample(1:N,I),4]='recuperado'
+```
+
+Escribir una función que revise la distancia euclidiana entre dos puntos y regrese TRUE (o 1) si la distancia es menor que r y regrese FALSE (o 0) si la distancia es mayor o igual que r.
+```{r}
+
+ #Función que calcula si la distancia euclidia entre 2 puntos coordenados (x,y) es    menor que el ratio de contagio r.
+
+distancia_euclidia <- function(x1,y1,x2,y2){
+  distancia <- sqrt((x2-x1)^2 + (y2-y1)^2)
+  if (distancia <= r){
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+}
+```
+
+En este primer problema de esta fase 3 de nuestra solución con respecto a nuestra situación problema planteada es poder hacer una simulación mediante un conjunto de personas en una ciudad cuadrada con una persona infectada dentro de esta población, en la continuación a la fase 4 con respecto a esta pregunta se pretende lograr en obtener esta simulación y observar como se comporta nuestra población con una persona infectada y ver como la infección crece rapidamente. 
+
+
+
+
+## Problema 2 (Juan Pablo Bernal Lafarga - A01742342)
+
+-   Crear una ciudad circular de radio D/2 con distribución uniforme de personas, misma que no puede generarse de manera estándar sino que debe considerarse una distribución modificada tal como se ve en https://programming.guide/random-point-within-circle.html.
+
+-   Crear un arreglo de posiciones x, y de posiciones y considerando N personas. Asignar una posición inicial aleatoria para cada una de las personas de la población.
+
+
+```{r}
+library(ggplot2)
+#Fase 3 Circulo con radio D/2
+N = 500
+D = 10 
+Radio = D/2
+r = 0.6
+
+#Punto aleatorio en círculo
+a = runif(N,1,10)*2*pi
+rr = Radio*sqrt(runif(N))
+x = rr*cos(a) #Cambio a coordenadas polares para x
+y = rr*sin(a) #Cambio a coordenadas polares para y
+coordenadas <- data.frame(x,y)
+
+f <- stri_rand_strings(N, 5)
+
+#Graficamos la distibución de las personas en la ciudad
+plot(coordenadas,main = "Distribución de las personas en la ciudad",
+xlab = "D",
+ylab = "D", asp = 1, xlim = c(-Radio, Radio),ylim = c(-Radio, Radio))
+
+#Añadimos un ID diferente a cada persona
+coordenadas <- tibble::rowid_to_column(coordenadas, "ID")
+
+#Hacer Circulo
+t <- seq(0, 2*pi, length.out = 1000) ## usaré más valores
+ 
+radio = Radio
+ 
+origenx <- 0 ## origen circunferencia eje x
+origeny <- 0 ## origen circunferencia eje y
+ 
+xcirc <- origenx + cos(t)*radio
+ycirc <- origeny + sin(t)*radio
+
+lines(xcirc, ycirc, lwd=1)
+```
+
+El principio de este problema está dado por una distribución aleatoria de $N$ personas en un círculo de radio $D/2$. Donde la posición del punto se da por el cambio a coordenadas polares de un punto aleatorio
+definido entre 1 y el valor del diámetro.
+
+Se crea el círculo, se define donde estará centrado y se plotea la gráfica donde toda la población 
+estará englobada dentro del círculo que definimos. De esta forma simulamos la posición de una población
+dentro de una ciudad, aunque no simulamos el movimiento de la población, por lo que presentamos un
+modelo estático y aún lejos de parecerse a la realidad.
+
+Tomemos como ejemplo un círculo de diámetro 10, si escogemos un punto aleatorio dentro de la circunferencia entonces usamos las ecuaciones para el cambio de coordenadas, las
+cuales son
+$x=radio \cdot cos(\theta)$ y $y=radio \cdot sin(\theta)$. De esta forma cambiamos de coordenadas cartesianas a polares, es decir, que los puntos se encontraran dentro de los límites de circunferencia, pues este actúa como el nuevo "plano".
+Y así obtenemos la posición de la persona en la ciudad y se gráfica dentro del círculo. La persona queda dentro de él, debido a que el punto definido, y el ángulo tienen como límite la circunferencia.
+
+```{r}
+#Definimos quienes son nuestras variables. Cumpliendo que N = I + S + R. 
+S <- 299
+I <- 1
+R <- 0
+N <- S + R + I
+#Ratio de contagio
+r <- 0.6
+#Ratio de recuperación. USando la propuesta en modelos anteriores.
+gama <- 0.3
+#Creamos la variable categorica de estado. Asignamos la infección de forma al azar. 
+estado <- ifelse(coordenadas$ID == sample(1:N,I),'infectado','susceptible')
+#Indexamos la variable a nuestro dataframe
+coordenadas$Estado <- estado
+#Asignamos a nuestro primer recuperado
+coordenadas[sample(1:N,I),4]='recuperado'
+#Función que calcula si la distancia euclidia entre 2 puntos coordenados (x,y) es    menor que el ratio de contagio r.
+distancia_euclidia <- function(x1,y1,x2,y2){
+  distancia <- sqrt((x2-x1)^2 + (y2-y1)^2)
+  if (distancia <= r){
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+}
+
+#Hacemos una copia de las coordenadas iniciales.Iremos concatenando los nuevos datos a este dataframe.
+coordenadas2 <- coordenadas
+coordenadas2$I <- rep(0,nrow(coordenadas))
+```
+
+
+
+## Problema 3 (Alfredo Murillo Madrigal - A01641791)
+
+Crear una ciudad cuadrada de lado D en la que las personas están distribuidas en forma de “cluster” en donde hay una preferencia de las personas para estar ubicadas en cierta zona dentro de la ciudad. Para esto, defina un lugar de preferencia en forma aleatoria x0, y0 y determine la posición aleatoria de la posición de N personas distribuidas de acuerdo a una distribución normal.
+
+Considere la función de la distribución normal (en R la función para generar números normalmente distribuidos con media 0 y desviación estándar 1 es rnorm(N,mean=0,sd=1)). Con esto, puede elegir coordenadas en x que se concentran alrededor de x0 y coordenadas y que se concentran alrededor de y0. Considere una desviación estándar de tamaño D/20.
+
+```{r, fig.width=8, fig.height=8}
+# Cálculo de la distibución de las personas en la ciudad
+N=300
+D=10
+# Punto aleatorio lugar de preferencia
+x0 <- runif(1, min=1, D-1)
+y0 <- runif(1, min=1, D-1)
+sd=D/20
+# Puntos alrededor del punto aleatorio
+x <- c(rnorm(N,x0,sd))
+y <- c(rnorm(N,y0,sd))
+coordenadas <- data.frame(x,y)
+
+f <- stri_rand_strings(N, 5)
+
+#Grafico de la distibución de las personas en la ciudad
+plot(coordenadas,
+     main = "Distribución de personas en la ciudad en Cluster",
+     ylim=c(0,10),
+     xlim=c(0,10),
+     col='blue',
+     xlab = "D",
+     ylab = "D")
+```
+
+```{r}
+# ID diferente a cada persona
+coordenadas <- tibble::rowid_to_column(coordenadas, "ID")
+#Definimos quienes son nuestras variables. Cumpliendo que N = I + S + R. 
+S <- 299
+I <- 1
+R <- 0
+N <- S + R + I
+#Ratio de contagio
+r <- 0.6
+#Ratio de recuperación. USando la propuesta en modelos anteriores.
+gama <- 0.3
+#Creamos la variable categorica de estado. Asignamos la infección de forma al azar. 
+estado <- ifelse(coordenadas$ID == sample(1:N,I),'infectado','susceptible')
+#Indexamos la variable a nuestro dataframe
+coordenadas$Estado <- estado
+#Asignamos a nuestro primer recuperado
+coordenadas[sample(1:N,I),4]='recuperado'
+#Función que calcula si la distancia euclidia entre 2 puntos coordenados (x,y) es    menor que el ratio de contagio r.
+distancia_euclidia <- function(x1,y1,x2,y2){
+  distancia <- sqrt((x2-x1)^2 + (y2-y1)^2)
+  if (distancia <= r){
+    return(TRUE)
+  }else{
+    return(FALSE)
+  }
+}
+
+#Hacemos una copia de las coordenadas iniciales.Iremos concatenando los nuevos datos a este dataframe.
+coordenadas2 <- coordenadas
+coordenadas2$I <- rep(0,nrow(coordenadas))
+```
+
+
+Este problema consiste en la aplicación de conceptos de estadistica combinado con un modelo de en 2D para simular la manera en que un conjunto de personas reunidas en un punto interaccionan. 
+El espacio generado consiste en un cuadrado de lado D el cual nos permite comparar como es el comportamiento en comparación a otros espacios, lo cual puede llegar a afectar o no el como se distribuyen las personas y por ende la probabilidad de estos de contagiarse, pero, sobre todo, podemos ver el impacto que tiene la aglomeración de personas en un mismo sitio, ya que si consideramos que las probabilidades de conagio se calculan al estar cerca de una persona infectada, podemos darnos cuenta que al usar clusters es prácticamente seguro que las personas en el se contagiaran elevando de manera abrupta los contagios y si las estamos considerando, elevar también el número de muertos.
+
+
+
+
+
+## Problema 4 (Juan Pablo Valenzuela Dorado - A00227321)
+
+
+
+```{r}
+if(!require('stringi')) {
+  install.packages('stringi')
+  library('stringi')
+}
+library(ggplot2)
+
+S <- 498
+I <- 1
+R <- 1
+N <- S + R + I
+D = 10
+r <- 0.6
+#Ratio de recuperaciÃ³n. USando la propuesta en modelos anteriores.
+gama <- 0.3
+estado <- ifelse(coordenadas$ID == sample(1:N,I),'infectado','susceptible')
+
+r1 <- sqrt(runif(1,min=1, D))
+t <- 2*pi*runif(1,min=1, D)
+x0 <- r1*cos(t)
+y0 <- r1*sin(t)
+sd=D/20
+x <- c(rnorm(N,x0,sd))
+y <- c(rnorm(N,y0,sd))
+t <- seq(0, 2*pi, length.out = 100)
+
+#Considerando un arreglo para posiciones X y Y
+coordenadas <- data.frame(x,y)
+xxx <- cos(t)*5
+yyy <- sin(t)*5
+f <- stri_rand_strings(N, 5)
+
+#Graficando la distribuciÃ³n de personas en la ciudad
+plot(coordenadas,
+     main = "Distribución de las personas en la ciudad",
+     ylim=c(-5,5),
+     xlim=c(-5,5),
+     xlab = "D",
+     ylab = "D")
+lines(xxx, yyy, lwd = .5)
+```
+
+
+
+Lo que se realizó durante esta etapa del reto, fue crear una ciudad a través de números aleatorios, se acotó la zona en la que se podían generar los puntos en un radio D/2, nuevamente con una distribución de personas cluster, siendo este un modelo más preciso para simular el comportamiento de personas, debido a la tendencia de crear ciudades o zonas de alto impacto e interactuar entre ellas. 
+
+Se creó el círculo, centrado en una posición que cada persona elige, en este caso siendo en el (0,0) con un radio de 5, y se plotean las personas dentro del mismo, dándole preferencia a una zona, es decir, es más probable que cuando se ploteen, incluso si se hace a través de números aleatorios, se encuentren dentro de la zona, creando así un cluster.
+
+En caso de trabajar en una futura fase 4, el cluster incluso al momento de moverse, tendrá la tendencia de moverse en conjunto en este problema, causando así que aumente la probabilidad de que las personas se infecten en las primeras partes de la simulación, pero disminuyendo altamente al haber muy pocas personas para infectar. 
+
+
+## Conclusión
+
+
+En conclusión, las herramientas tecnológicas permiten crear simulaciones precisas de el comportamiento tanto humano como el de una enfermedad, y su modelación permite a investigadores dedicar su esfuerzo a encontrar patrones y la mejor manera para prevenir o recuperarse tras un brote de una enfermedad, como se vio en la previa pandemia. La utilización de un modelo SIR para modelar la expansión de una enfermedad, a la mano de las herramientas necesarias para modelar las tendencias humanas de aglomerarse y convivir, son un valioso aliado de la medicina, y al saber cómo prevenir el contacto entre los infectados y los susceptibles, y al mismo tiempo poder contener los picos de infección, se puede llegar a una manera eficaz de tratar una enfermedad.
+
+
