@@ -31,7 +31,7 @@ Diseñé un modelo matemático lineal eficiente para la asignación de hasta 30 
 Minimicé el número de profesores requeridos y cumplí con las restricciones de horas de trabajo de los mismos.
 
 Utilicé Python para crear el modelo matemático fundamental y Gurobi para optimizarlo.
-### [Mpdelo bayesiano discreto para predicción del medio de transporte más usado](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/e777ea55e371be4a38440bb1acef54c92abc5761/Transporte_Preferido_Car.Rmd)
+### [Modelo bayesiano discreto para predicción del medio de transporte más usado](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/e777ea55e371be4a38440bb1acef54c92abc5761/Transporte_Preferido_Car.Rmd)
 Implementé redes bayesianas discretas en R para estudiar el comportamiento del uso de diferentes medios de transporte y sus principales razones de uso.
 
 Generé DAG's para el análisis de datos causales que permitió responder queries para la toma de decisiones en favor de descubrir las razones detrás del uso de ciertos medios de transporte.
