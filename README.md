@@ -22,7 +22,16 @@ Mi razonamiento matemático y  fácil disposición al trabajo en equipo son mis 
 - Soft skills: liderazgo, gestión de equipos, comunicación.
 
 ## Proyectos
-### [Nombre del Proyecto](URL del proyecto)
+### [Algoritmos bioinspirados para problema Knapsack de un acuario](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/2591f1b86d274b5f1fcdcde6e99f7f701fc16277/Knapsack_Aquarium.ipynb)
+Resolví un problema de Knapsack de un acuario con algoritmos bioinspirados como Algoritmo Genético (GE), Particle Swarm Optimization (PSO) y DEAP para poder optimizar la distribuir a los diferentes peces en peceras con espacios definidos, de tal manera que no se cazaran entre y ellos y tuvieran suficiente espacio para vivir.
+
+### [Problema de horario para el departamento de ciencias del ITESM Campus Guadalajara](URL del proyecto)
+Breve descripción del proyecto, tecnologías usadas.
+
+### [Mpdelo bayesiano discreto para predicción del medio de transporte más usado](URL del proyecto)
+Breve descripción del proyecto, tecnologías usadas.
+
+### [Modelo bayesiano continuo para estimación de niveles del cuerpo](URL del proyecto)
 Breve descripción del proyecto, tecnologías usadas.
 
 ## Certificaciones
