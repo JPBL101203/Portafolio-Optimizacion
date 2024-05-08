@@ -39,7 +39,7 @@ Mi modelo revela las probabilidades relacionadas con las que ciertos niveles nat
 
 ## Idiomas
 - Español (Nativo)
-- Inglés (B2 Intermedio - Avanzado)
+- Inglés (B2)
 
 ## Intereses
 - Música
