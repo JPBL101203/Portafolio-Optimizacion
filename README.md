@@ -51,7 +51,7 @@ Mi modelo revela las probabilidades relacionadas con las que ciertos niveles nat
 ## Intereses
 - Música
 - Rondalla
-- Resolver problemas
+- Resolver problemas matemáticos
 
 
 
