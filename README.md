@@ -1,13 +1,5 @@
 # Portafolio-Optimizacion
 
-<!-- Incluyendo CSS directamente en el documento Markdown -->
-<style>
-    p.custom-font {
-        font-family: 'Times New Roman', serif;
-        font-size: 12pt;
-    }
-</style>
+<span style="font-family: 'Times New Roman', Times, serif; font-size: 16px;">
+Hijuesiputamadre qué hambre ntengo.</span>
 
-<p class="custom-font">
-
-Hijoesuputamdre que hambre tengo</p>
