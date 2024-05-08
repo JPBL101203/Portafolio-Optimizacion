@@ -27,15 +27,21 @@ Mi razonamiento matemático y  fácil disposición al trabajo en equipo son mis 
 Resolví un problema de Knapsack de un acuario con algoritmos bioinspirados como Algoritmo Genético (GE), Particle Swarm Optimization (PSO) y DEAP para poder optimizar la distribuir a los diferentes peces en peceras con espacios definidos, de tal manera que no se cazaran entre ellos y tuvieran suficiente espacio para vivir.
 ### [Problema de horario para el departamento de ciencias del ITESM Campus Guadalajara](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/e777ea55e371be4a38440bb1acef54c92abc5761/Scheduling_Science_deparment.ipynb)
 Diseñé un modelo matemático lineal eficiente para la asignación de hasta 30 profesores a 20 clases con 35 salones disponibles para el ITESM.
+
 Minimicé el número de profesores requeridos y cumplí con las restricciones de horas de trabajo de los mismos.
+
 Utilicé Python para crear el modelo matemático fundamental y Gurobi para optimizarlo.
 ### [Mpdelo bayesiano discreto para predicción del medio de transporte más usado](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/e777ea55e371be4a38440bb1acef54c92abc5761/Transporte_Preferido_Car.Rmd)
 Implementé redes bayesianas discretas en R para estudiar el comportamiento del uso de diferentes medios de transporte y sus principales razones de uso.
+
 Generé DAG's para el análisis de datos causales que permitió responder queries para la toma de decisiones en favor de descubrir las razones detrás del uso de ciertos medios de transporte.
 ### [Modelo bayesiano continuo para estimación de niveles del cuerpo](https://github.com/JPBL101203/Portafolio-Optimizacion/blob/e777ea55e371be4a38440bb1acef54c92abc5761/Predic_NivelesCuerpo.Rmd)
 Apliqué redes bayesianas continuas para el análisis de variables continuas en el contexto de la salid y la enfermedad renal crónica (ERC).
+
 Propuse una estructura de red basada en una DAG para representar las relaciones hipotéticas entre las variables del cuerpo que influyen en la ERC.
+
 Ajusté una Red Bayesiana Gaussiana (GBN) utilizando una base de datos de un hospital, y evalué la bondad de ajuste de la red mediante criterios de información bayesiana.
+
 Mi modelo revela las probabilidades relacionadas con las que ciertos niveles naturales del cuerpo dan prueba de síntomas de la ERC.
 
 ## Idiomas
