@@ -13,6 +13,7 @@ Mi razonamiento matemático y  fácil disposición al trabajo en equipo son mis 
 ## Educación
 ### Instituto Tecnológico de Educación Superior de Monterrey Campus Guadalajara, Zapopan, Jalisco — Licenciatura en Ingeniería en Ciencia de Datos y Matemáticas
 **Agosto 2021 - Julio 2025**
+
 -Sólida formación en estadística, matemática aplicada y algoritmos de inteligencia artificial con un enfoque especial en la modelación matemática y en la simulación computacional donde a partir de los datos y su análisis poder resolver problemas de diseño, optimización y toma de decisiones.
 
 ## Habilidades
